@@ -1,0 +1,54 @@
+name: "Set up binary cache"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - .github/**
+      - assets/**
+      - .gitignore
+
+jobs:
+  cachix:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        package:
+          - default
+          - nix
+          - tidal
+          - maximal
+    steps:
+      - uses: easimon/maximize-build-space@v10
+        name: Maximize build space
+        with:
+          overprovision-lvm: true
+          remove-android: true
+          remove-dotnet: true
+          remove-haskell: true
+          remove-codeql: true
+
+      - uses: actions/checkout@v4
+        name: Checkout
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - uses: cachix/cachix-action@v14
+        with:
+          authToken: ${{ secrets.CACHIX_TOKEN }}
+          extraPullNames: nix-community
+          name: neovim-flake
+
+      - name: Set default git branch (to reduce log spam)
+        run: git config --global init.defaultBranch main
+
+      - name: Validate Flakes
+        run: nix flake check
+
+      - name: Build neovim-flake with default settings
+        run: nix build .#${{ matrix.package }} --print-build-logs

@@ -1,0 +1,38 @@
+name: "Validate flake & check formatting"
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - .github/**
+      - assets/**
+      - .gitignore
+jobs:
+  nix-flake-check:
+    name: Validate Flake
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Check Flake
+        run: nix flake check
+
+  format-with-alejandra:
+    name: Formatting via Alejandra
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - run: nix run nixpkgs#alejandra -- -c .
